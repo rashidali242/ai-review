@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pull Requests</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .centered {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Pull Requests</h1>
+        <div class="centered mb-3">
+            <select id="repositoryDropdown" class="form-select w-50">
+                <option value="">Select a Repositories</option>
+            </select>
+        </div>
+        
+        {% if status %}
+            <div class="alert alert-info" id="status">
+                {{ status }}
+            </div>
+        {% endif %}
+        {% if pr_list %}
+            <div class="row">
+                {% for pr in pr_list %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ pr.title }}</h5>
+                                <p class="card-text">
+                                    <strong>ID:</strong> {{ pr.id }} <br>
+                                    <strong>State:</strong> {{ pr.state }} <br>
+                                    <strong>Description:</strong> {{ pr.description }}
+                                </p>
+                                <div class="mb-3">
+                                    <label for="searchDropdown-{{ pr.id }}">Search Type</label>
+                                    <select id="searchDropdown-{{ pr.id }}" class="form-control">
+                                        <option value="Acceptance Criteria:">Acceptance Criteria</option>
+                                        <option value="Description:">Description</option>
+                                        <option value="Test Cases:">Test Cases</option>
+                                    </select>
+                                </div>
+                                <a href="/process-pr?pr_id={{ pr.id }}&repo_slug={{ repo_slug }}&pr_title={{ pr.title }}" id="review-pr-{{ pr.id }}" class="btn btn-primary">Review PR</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center">
+                No pull requests available.
+            </div>
+        {% endif %}
+    </div>
+    <!-- Bootstrap JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function fetchRepositories() {
+            const response = await fetch('/api/repositories');
+            const repositories = await response.json();
+            const dropdown = document.getElementById('repositoryDropdown');
+    
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentRepoSlug = urlParams.get('repo_slug');
+
+            repositories.forEach(repository => {
+                const option = document.createElement('option');
+                option.value = repository.slug; // or `repository.id`
+                option.text = repository.name;
+                dropdown.appendChild(option);
+
+                if (repository.slug === currentRepoSlug) {
+                    option.selected = true;
+                }
+            });
+        }
+    
+        document.getElementById('repositoryDropdown').addEventListener('change', function () {
+            const repo_slug = this.value;
+            if (repo_slug) {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('repo_slug', repo_slug);
+                currentUrl.searchParams.set('status', "");
+                window.location.href = currentUrl.toString();
+            }
+        });
+            
+        fetchRepositories();
+    </script>
+    <script>
+        // Loop through each dropdown and add event listener to update the corresponding PR link
+        {% for pr in pr_list %}
+            document.getElementById('searchDropdown-{{ pr.id }}').addEventListener('change', function() {
+                var selectedValue = this.value;
+                var prLink = document.getElementById('review-pr-{{ pr.id }}');
+                // Update the href with the selected search type
+                prLink.href = '/process-pr?pr_id={{ pr.id }}&repo_slug={{ repo_slug }}&pr_title={{ pr.title }}&search_type=' + selectedValue;
+            });
+        {% endfor %}
+    </script>
+</body>
+</html>

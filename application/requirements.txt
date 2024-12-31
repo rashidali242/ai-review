@@ -1,0 +1,7 @@
+Flask
+python-dotenv
+awscli
+boto3
+jira
+markdown
+requests
